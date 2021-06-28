@@ -1,32 +1,35 @@
 package se.swedbank.service;
 
-import java.util.HashMap;
+import java.io.IOException;
+
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.origin.SystemEnvironmentOrigin;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+
 import org.springframework.web.client.RestTemplate;
 
-import se.swedbank.dto.VerifyDto;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Service
-public class service {
+import se.swedbank.dto.AuthenticationMethod;
+import se.swedbank.dto.Root;
+import se.swedbank.dto.VerifyDto;
+import se.swedbank.serviceInterface.ServiceInterface;
+
+@org.springframework.stereotype.Service
+public class Service implements ServiceInterface {
 	@Autowired
 	private RestTemplate restTemplate;
 	
@@ -35,25 +38,40 @@ public class service {
 	private static final String BarcodeApi = "https://online.swedbank.se/TDE_DAP_Portal_REST_WEB/api/v5/identification/bankid/mobile/image";
 	private static final String VerifyApi = "https://online.swedbank.se/TDE_DAP_Portal_REST_WEB/api/v5/identification/bankid/mobile/verify";
 	
-	/*public static HttpSession resetSessionId(HttpSession session, 
-		      HttpServletRequest request) {
-		    //session.invalidate();
-		    session = request.getSession(true);
-		    System.out.println("session Id : " + session);
-		    return session;
-		}*/	
 	
-	public String getAuthenticationMethods(){
+	public void getAuthenticationMethods(){
 		
 		//Create Headers of the request
 		HttpHeaders headers= createHeadersForRequest();
 		HttpEntity entity = new HttpEntity(headers);
 		
+		Root jsonResponse=null;
 		
 		ResponseEntity<String> response = restTemplate.exchange(AuthMethodsApi, HttpMethod.GET, entity, String.class);
 		String authenticationMethods = response.getBody();
-		System.out.println("Authentication methods : " + authenticationMethods);
-		return authenticationMethods;
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		// Deserialization into the Root class , i.e converting into JSON object 
+		try {
+			 jsonResponse = objectMapper.readValue(authenticationMethods, Root.class);
+			 System.out.println("Authentication methods : " );
+			 
+			 for (AuthenticationMethod eachAuthMethod:jsonResponse.getAuthenticationMethods() )
+			 {
+				 System.out.println(eachAuthMethod.getMessage()+ "\n");
+			 }
+			
+		} catch (JsonParseException e) {
+			
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			
+			e.printStackTrace();
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		
 	}
 
 	
@@ -62,7 +80,7 @@ public class service {
 	{
 		//Creating Headers
 		HttpHeaders headers= createHeadersForRequest();
-		//String static final responseForVerifyApiInString =null;
+		
 		//Adding request parameters in Body 
 		JSONObject request = new JSONObject();
 		try {
@@ -78,53 +96,44 @@ public class service {
 		HttpEntity entityForAuthWithBankId = new HttpEntity(request.toString(), headers);
 		ResponseEntity<String> response = restTemplate.exchange(AuthUsingBankIdApi, HttpMethod.POST, entityForAuthWithBankId, String.class);
 		
-		//String responseBodyForAuthWithBankId = response.getBody();
+		//Get Headers from this API, to use it in next API Calling
 		HttpHeaders responseHeaderForAuthWithBankId = response.getHeaders();
 		
-		/* getJSessionIdFromCookie =getJSessionIdFromCookie(responseHeaderForAuthWithBankId);
-		if (getJSessionIdFromCookie.isEmpty())
-		{
-			System.out.println("Your session is not valid");
-			return null;
-			
-		}*/
 	
-		
+		//Calling the API in every 10 sec
 		 Timer timer = new Timer();
 	        timer.schedule(new TimerTask() {
 	        	String authStatus=null;
 	            @Override
 	            public void run() {
 	                System.out.println("Running: " + new java.util.Date());
-	                 authStatus=authenticationStatus(responseHeaderForAuthWithBankId );
-	                System.out.println("Running: " + authStatus);
+	                 try {
+						authStatus=getAuthenticationStatus(responseHeaderForAuthWithBankId );
+					} catch (JsonMappingException e) {
+						
+						e.printStackTrace();
+					} catch (JsonProcessingException e) {
+						
+						e.printStackTrace();
+					} catch (IOException e) {
+						
+						e.printStackTrace();
+					}
+	                System.out.println("Status Code: " + authStatus);
 	            }
-	        }, 0, 1000);
+	        }, 0, 10000);
 	   
 	
-		/*ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-		exec.scheduleAtFixedRate(new Runnable() {
-
-		@Override
-		public void run() {
-			System.out.println("In Every 10 sec");
-			
-			String authStatus=authenticationStatus(responseHeaderForAuthWithBankId );
-			
-		}
-		}, 0, 10, TimeUnit.SECONDS);*/
 		
-		//return authStatus;
 	}
 
 
-	private String  authenticationStatus(HttpHeaders responseHeaderForAuthWithBankId)
+	private String  getAuthenticationStatus(HttpHeaders responseHeader) throws IOException
 	{
 		HttpHeaders headers= createHeadersForRequest();
-		String getJSessionIdFromCookie =getJSessionIdFromCookie(responseHeaderForAuthWithBankId);
+		String getJSessionIdFromCookie =getJSessionIdFromCookie(responseHeader);
 		
 		headers.set("Cookie", getJSessionIdFromCookie);
-		//headers.set("Cookie", responseHeaderForAuthWithBankId.toString());
 		HttpEntity entityWithJsessionId = new HttpEntity(headers);
 		
 		//Image Api invoking
@@ -135,16 +144,20 @@ public class service {
 		//Verify Api invoking
 		ResponseEntity<String> responseForVerifyApi = restTemplate.exchange(VerifyApi, HttpMethod.GET, entityWithJsessionId, new ParameterizedTypeReference<String>() {
         });
-		//ResponseEntity<List<VerifyDto>> responseForVerifyApi = restTemplate.exchange(VerifyApi, HttpMethod.GET, entityWithJsessionId, new ParameterizedTypeReference<List<VerifyDto>>() {
-        //});
-		//List<VerifyDto> responseForVerifyApiInString = responseForVerifyApi.getBody();
 		String responseForVerifyApiInString = responseForVerifyApi.getBody();
-		//System.out.println("Response For Verify API " + responseForVerifyApiInString.get(0).getStatus());
-		System.out.println("Response For Verify API " + responseForVerifyApiInString);
-		return null;
+		
+
+		// Deserialization into the `VerifyDto` class
+		ObjectMapper objectMapper = new ObjectMapper();
+		VerifyDto jsonResponse = objectMapper.readValue(responseForVerifyApiInString, VerifyDto.class);
+		
+		//System.out.println("Response For Verify API " + jsonResponse.getStatus());
+		return jsonResponse.getStatus();
 
 	}
-	private String getJSessionIdFromCookie(HttpHeaders responseHeaderForAuthWithBankId) {
+	
+	
+	public String getJSessionIdFromCookie(HttpHeaders responseHeaderForAuthWithBankId) {
 		List<String> valueForCookieKey = responseHeaderForAuthWithBankId.get("Set-cookie");
 		String jsessionid = null;
 		for (String values : valueForCookieKey) {
@@ -153,7 +166,7 @@ public class service {
 			if (values.contains("JSESSIONID")) {
 				String cookie1 = values;
 				jsessionid = cookie1.split(";")[0];
-				System.out.println("Jsession Id " + jsessionid);
+				//System.out.println("Jsession Id " + jsessionid);
 				
 			}
 		}

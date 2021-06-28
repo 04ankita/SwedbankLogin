@@ -1,6 +1,8 @@
 package se.swedbank;
 
-import java.util.Scanner;
+
+
+import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -16,7 +18,7 @@ import org.springframework.web.client.RestTemplate;
 @ComponentScan(basePackages = {"se.swedbank"})
 public class Application  implements CommandLineRunner {
 	@Autowired
-	private se.swedbank.service.service servicex;
+	private se.swedbank.service.Service servicex;
 	
 	@Bean
 	public RestTemplate getRestTemplate() {
@@ -25,15 +27,22 @@ public class Application  implements CommandLineRunner {
 
 	public static void main(String[] args)
 	{  
-	SpringApplication.run(Application.class, args);  
+		SpringApplication.run(Application.class, args);  
 	}
-@Override
-	public void run(String... args) throws Exception {
+	
+	@Override
+	public void run(String... args) {
 		// TODO Auto-generated method stub
+		try {
 		servicex.getAuthenticationMethods();
-		System.out.println("Logging in with Bank id : ");
+		System.out.println("Logging in with first Authentictaion method : Bank id for 19101010-1010 : ");
 		servicex.authUsingBankId("19101010-1010");
-		//System.exit(0);
+		}
+		catch (Exception e) {
+			System.out.println("Session has expired ");
+			System.exit(0);
+		}
+		
 		
 	} 
 

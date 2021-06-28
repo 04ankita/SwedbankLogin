@@ -17,14 +17,14 @@
 	</properties>
 	<build>
 		<sourceDirectory>src/main/java</sourceDirectory>
-		<finalName>ItemChecker</finalName>
+		<finalName>SwedBankLogin</finalName>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
 					
-<mainClass>se.swedbank.app.Application</mainClass>
+			<mainClass>se.swedbank.app.Application</mainClass>
 					<source>1.8</source>
 					<target>1.8</target>
 				</configuration>
@@ -49,12 +49,30 @@
 			<artifactId>spring-boot-starter-tomcat</artifactId> 
 			<scope>provided</scope> 
 		</dependency>
+		
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-core</artifactId>
+   
+</dependency>
+
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <exclusions>
+        <exclusion>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+
 		<dependency>
     <groupId>org.json</groupId>
     <artifactId>json</artifactId>
     <version>20090211</version>
-</dependency>
-	<dependency>
+	</dependency>
+<!--  	<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 		</dependency>
@@ -68,7 +86,7 @@
 			<groupId>commons-net</groupId>
 			<artifactId>commons-net</artifactId>
 			<version>3.6</version>
-		</dependency>
+		</dependency> -->
 		<dependency>
 		<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
@@ -80,28 +98,9 @@
 			</exclusions>
 		</dependency>
 		
-		<dependency>
-   <groupId>org.springframework.boot</groupId>
-   <artifactId>spring-boot-starter-mail</artifactId>
-</dependency>
+		
 
-
-
-<dependency>
-   <groupId>org.springframework.boot</groupId>
-   <artifactId>spring-boot-starter-mail</artifactId>
-</dependency>
-  
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
 </dependencies>
-
-
-
-	
 
 
 </project>
