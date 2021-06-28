@@ -30,7 +30,7 @@ public class Application  implements CommandLineRunner {
 		// TODO Auto-generated method stub
 		servicex.getAuthenticationMethods();
 		System.out.println("Logging in with Bank id");
-		servicex.authUsingBankId("19920404-5448");
+		servicex.authUsingBankId("19101010-1010");
 		System.exit(0);
 		
 	} 
