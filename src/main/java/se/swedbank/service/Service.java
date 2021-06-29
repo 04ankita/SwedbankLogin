@@ -106,9 +106,10 @@ public class Service implements ServiceInterface {
 	        	String authStatus=null;
 	            @Override
 	            public void run() {
-	                System.out.println("Running: " + new java.util.Date());
+	                System.out.println("\nRunning: " + new java.util.Date());
 	                 try {
 						authStatus=getAuthenticationStatus(responseHeaderForAuthWithBankId );
+						System.out.println("Status Code: " + authStatus);
 					} catch (JsonMappingException e) {
 						
 						e.printStackTrace();
@@ -118,8 +119,12 @@ public class Service implements ServiceInterface {
 					} catch (IOException e) {
 						
 						e.printStackTrace();
+					} catch (Exception e) {
+						System.out.println("Your Session has expired, kindly relogin ");
+						System.exit(0);
+						//e.printStackTrace();
 					}
-	                System.out.println("Status Code: " + authStatus);
+	                
 	            }
 	        }, 0, 10000);
 	   
@@ -128,7 +133,7 @@ public class Service implements ServiceInterface {
 	}
 
 
-	private String  getAuthenticationStatus(HttpHeaders responseHeader) throws IOException
+	private String  getAuthenticationStatus(HttpHeaders responseHeader) throws Exception, IOException
 	{
 		HttpHeaders headers= createHeadersForRequest();
 		String getJSessionIdFromCookie =getJSessionIdFromCookie(responseHeader);
